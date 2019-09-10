@@ -15,7 +15,7 @@ def main():
 	id, df = verbo.generate_verbo.generate(id,df)
 	id, df = rico.generate_rico.generate(id,df)
 	# write results
-	f = open('./result.csv','w')
+	f = open('./widgets.csv','w')
 	f.write(df.to_csv(index=False))
 	f.close()
 
