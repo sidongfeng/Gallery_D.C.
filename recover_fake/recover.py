@@ -95,7 +95,7 @@ def get_screenshots_from_verbo():
             # extract bounding image
             if match:
                 cv2.rectangle(image, (bounds[0],bounds[1]), (bounds[2],bounds[3]), (0,0,255),2)
-                cv2.imwrite('./screenshots_verbo/'+package+'-'+f+'-'+str(id)+'.png',image)
+                cv2.imwrite('./screenshots/'+package+'-'+f+'-'+str(id)+'.png',image)
                 break
 
 ###########################################
@@ -254,7 +254,6 @@ PATH_FROM = '/Users/mac/Documents/all_widgets/'
 PATH_TO = './all_widgets/'
 def clean():
     df_clean = pd.DataFrame(columns=['id','name','color','coordinates','dimensions','package_name','text','widget_class','application_name','downloads','url','category','Developer','font','sims','date','src'])
-    df_clean = df_clean.fillna(0)
     screenshots = os.listdir('./screenshots/')
     if '.DS_Store' in screenshots: screenshots.remove('.DS_Store')
     df_id = df.copy()
@@ -286,7 +285,7 @@ def clean():
     f.close()
 
 if __name__ == '__main__': 
-    # get_screenshots_from_verbo()
-    # get_screenshots_from_rico()
-    # clean()
-    df = pd.read_json('result.json',orient='records')
+    get_screenshots_from_verbo()
+    get_screenshots_from_rico()
+    clean()
+    # df = pd.read_json('result.json',orient='records')
