@@ -1,8 +1,11 @@
 import os
-dir_path = os.path.dirname(os.path.realpath(__file__))
 import json
 import tqdm
-from PIL import ImageFile, Image, ImageDraw
+from collections import Counter
+from shutil import copyfile
+import xml.etree.ElementTree as ET
+from PIL import ImageFile, Image
+dir_path = os.path.dirname(os.path.realpath(__file__))
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 targets = ["CheckBox","Button","Chronometer","RadioButton","RatingBar","SeekBar","Spinner","ToggleButton","ProgressBar","Switch","ImageButton"]
@@ -72,16 +75,56 @@ def parseSemantic(jsonfile):
             bnds += [element['bounds']]
     return bnds
 
-def read():
+def pascal_xml(img_name,img_width, img_height,img_depth,objects):
+    # img = Image.open(imgfile)
+    # img_name = imgfile.split('/')[-4]+imgfile.split('/')[-1]
+    # img_width, img_height = img.size
+    # img_depth = 3
+    root = ET.Element("annotation")
+    ET.SubElement(root, "folder").text = "VOC2012"
+    ET.SubElement(root, "filename").text = img_name
+    source = ET.SubElement(root, "source")
+    ET.SubElement(source, "database").text = "The VOC2007 Database"
+    ET.SubElement(source, "annotation").text = "PASCAL VOC2007"
+    ET.SubElement(source, "image").text = " "
+    size = ET.SubElement(root, "size")
+    ET.SubElement(size, "width").text = str(img_width)
+    ET.SubElement(size, "height").text = str(img_height)
+    ET.SubElement(size, "depth").text = str(img_depth)
+    ET.SubElement(root, "segmented").text = "0"
+    for o in objects:
+        img_type = o[0]
+        xmin,ymin,xmax,ymax = o[1]
+        ob = ET.SubElement(root, "object")
+        ET.SubElement(ob, "name").text = img_type
+        ET.SubElement(ob, "pose").text = " "
+        ET.SubElement(ob, "truncated").text = "0"
+        ET.SubElement(ob, "difficult").text = "0"
+        bnd = ET.SubElement(ob, "bndbox")
+        ET.SubElement(bnd, "xmin").text = str(xmin)
+        ET.SubElement(bnd, "ymin").text = str(ymin)
+        ET.SubElement(bnd, "xmax").text = str(xmax)
+        ET.SubElement(bnd, "ymax").text = str(ymax)
+    tree = ET.ElementTree(root)
+    return tree
+
+def generate_pascal():
+    if not os.path.isdir("./Annotations/"):
+        os.mkdir("./Annotations/")
+    if not os.path.isdir("./JPEGImages/"):
+        os.mkdir("./JPEGImages/")
+    if not os.path.isdir("./ImageSets/"):
+        os.mkdir("./ImageSets/")
+        os.mkdir("./ImageSets/Main/")
     c = []
     # 72219
     for i in tqdm.tqdm(range(72219)):
-        imgfrom_ = 
-        if not (os.path.exists('../Data/Rico/'+str(i)+'.json') and os.path.exists('../Data/Rico/'+str(i)+'.jpg')):
+        jsonfrom_ = dir_path+'/Rico/'+str(i)+'.json'
+        imgfrom_ = dir_path+'/Rico/'+str(i)+'.jpg'
+        jsonannotationfrom_ = dir_path+'/Rico_Semantic/'+str(i)+'.json'
+        if not (os.path.exists(jsonfrom_) and os.path.exists(imgfrom_)):
             continue
-        # image = Image.open('../Data/Rico/'+str(i)+'.jpg')
-        # image = image.resize((1440,2560),Image.BICUBIC)
-        candidates = parseRico('../Data/Rico/'+str(i)+'.json')
+        candidates = parseRico(jsonfrom_)
         # check any noise in candidate
         # since rico sematic only consider Button and ImageButton
         # 1. extract all button and imagebutton in our candidates
@@ -89,37 +132,32 @@ def read():
         # 3. if greater than threshold, only keep matched candidates and remove others (including other types)
         threshold = 2
         list1 = [x for x in candidates if (x[0] == 'ImageButton' or x[0] == 'Button')]
-        list2 = parseSemantic('/Users/mac/Downloads/semantic_annotations/'+str(i)+'.json')
+        list2 = parseSemantic(jsonannotationfrom_)
         matched = [x for x in list1 if x[1] in list2]
         unmatched = len(list1) - len(matched)
         if unmatched >= threshold:
             candidates = matched
-
-         # Annotations
+        # Annotations
         c += [x[0] for x in candidates]
         if len(candidates) == 0: 
             continue
         img = Image.open(imgfrom_)
-        img_name = imgfrom_.split('/')[-4]+imgfrom_.split('/')[-1]
+        img_name = str(i)+'.jpg'
         img_width, img_height = img.size
         img_depth = 3
-        tree = pascal_xml(img_name,img_width, img_height,img_depth,ob)
-        tree.write("./Annotations/"+a+"_"+i)
+        tree = pascal_xml(img_name,img_width, img_height,img_depth,candidates)
+        tree.write("./Annotations/"+str(i)+'.xml')
         # JPEGImages
-        to = "./JPEGImages/"+a+"_"+i.replace('xml','png')
+        to = "./JPEGImages/"+str(i)+'.jpg'
         copyfile(imgfrom_,to)
         # Main
         f = open("./ImageSets/Main/train.txt","a")
-        f.write(a+"_"+i.replace('.xml','')+'\n')
+        f.write(str(i)+'\n')
         f.close()
-    
-    from collections import Counter
-    print(Counter(classes))
-            
-
-
+    print(Counter(c))
+    return Counter(c)
 
 if __name__ == '__main__': 
     # generate pascal format dataset
-    read()
+    counts = generate_pascal()
     # Counter({'ImageButton': 32606, 'Button': 26112, 'RadioButton': 5436, 'CheckBox': 4980, 'Spinner': 3495, 'Switch': 3186, 'ToggleButton': 2445, 'SeekBar': 1996, 'RatingBar': 1143, 'Chronometer': 32})

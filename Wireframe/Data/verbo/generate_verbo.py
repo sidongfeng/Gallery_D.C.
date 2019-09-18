@@ -69,10 +69,13 @@ def pascal_xml(img_name,img_width, img_height,img_depth,objects):
     return tree
 
 def generate_pascal():
-    os.mkdir("./Annotations/")
-    os.mkdir("./JPEGImages/")
-    os.mkdir("./ImageSets/")
-    os.mkdir("./ImageSets/Main/")
+    if not os.path.isdir("./Annotations/"):
+        os.mkdir("./Annotations/")
+    if not os.path.isdir("./JPEGImages/"):
+        os.mkdir("./JPEGImages/")
+    if not os.path.isdir("./ImageSets/"):
+        os.mkdir("./ImageSets/")
+        os.mkdir("./ImageSets/Main/")
     c = []
     json_dir = dir_path+"/5k_data/train_data_path.json"
     f = open(json_dir,'r')
@@ -123,8 +126,6 @@ def get_iou(bb1, bb2):
     float
         in [0, 1]
     """
-    print(bb1[0])
-    print(bb1[2])
     assert bb1[0] < bb1[2]
     assert bb1[1] < bb1[3]
     assert bb2[0] < bb2[2]
